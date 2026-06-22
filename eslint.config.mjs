@@ -12,8 +12,15 @@ import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
   {
-    // Fichiers ignorés globalement.
-    ignores: ["dist/**", "node_modules/**", "coverage/**", "playwright-report/**"],
+    // Fichiers ignorés globalement (dont les fichiers de config, non typés-lintés).
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      "coverage/**",
+      "playwright-report/**",
+      "**/*.config.{ts,mts,mjs,js}",
+      "eslint.config.mjs",
+    ],
   },
 
   js.configs.recommended,
@@ -21,7 +28,7 @@ export default tseslint.config(
   ...tseslint.configs.stylisticTypeChecked,
 
   {
-    files: ["src/**/*.ts", "tests/**/*.ts", "*.config.{ts,mts,mjs}"],
+    files: ["src/**/*.ts", "tests/**/*.ts"],
     languageOptions: {
       parserOptions: {
         projectService: true,
