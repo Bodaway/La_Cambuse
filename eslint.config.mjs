@@ -47,10 +47,10 @@ export default tseslint.config(
         "error",
         { allowToRejectPromises: false },
       ],
-      "functional/prefer-immutable-types": [
-        "warn",
-        { enforcement: "ReadonlyShallow" },
-      ],
+      // prefer-immutable-types : désactivée — elle exige des annotations readonly
+      // jusque sur les types de libs (neverthrow) qu'on ne contrôle pas. L'immutabilité
+      // réelle reste imposée par immutable-data + no-let.
+      "functional/prefer-immutable-types": "off",
       "functional/prefer-property-signatures": "error",
 
       // --- Stricteté TypeScript ---
