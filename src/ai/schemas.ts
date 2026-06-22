@@ -13,5 +13,3 @@ export const weekPlanSchema = z.object({
     }),
   ),
 });
-
-export const weekPlanJsonSchema = JSON.stringify(z.toJSONSchema(weekPlanSchema));

@@ -1,10 +1,15 @@
-import { errAsync, ok, err, Result } from "neverthrow";
+import { errAsync, ok, err, Result, type ResultAsync } from "neverthrow";
 import type { z } from "zod";
-import type { AIError } from "./errors.js";
+import type { AIError, AIErrorCode } from "./errors.js";
 import { aiError } from "./errors.js";
 import type { CommandRunner } from "./command-runner.js";
-import type { AIProvider, CookingContext, PlanGenerationInput } from "./types.js";
-import { weekPlanJsonSchema, weekPlanSchema } from "./schemas.js";
+import type {
+  AIProvider,
+  CookingContext,
+  PlanGenerationInput,
+  WeekPlan,
+} from "./types.js";
+import { weekPlanSchema } from "./schemas.js";
 
 export type Model = "sonnet" | "opus";
 
@@ -34,6 +39,16 @@ const parseJson = Result.fromThrowable(
   (text: string): unknown => JSON.parse(text),
   (cause): AIError => aiError("invalid_output", "Sortie non-JSON.", cause),
 );
+
+const jsonFencePattern = /^```(?:json)?\s*([\s\S]*?)\s*```$/;
+
+// Le CLI enrobe parfois le JSON dans un bloc Markdown ```json … ``` :
+// on en extrait le contenu avant de parser.
+const extractJsonText = (raw: string): string => {
+  const trimmed = raw.trim();
+  const match = jsonFencePattern.exec(trimmed);
+  return match?.[1] ?? trimmed;
+};
 
 const parseEnvelope = (
   stdout: string,
@@ -94,19 +109,35 @@ const validateWith = <T>(
       );
 };
 
+// La sortie du LLM est non déterministe : une forme invalide est probablement
+// transitoire, donc on réessaie ; une erreur d'exécution (process_failed) non.
+const isRetryableError = (code: AIErrorCode): boolean =>
+  code === "invalid_output" || code === "schema_validation_failed";
+
+const withRetry = <T>(
+  attempt: () => ResultAsync<T, AIError>,
+  retries: number,
+): ResultAsync<T, AIError> =>
+  attempt().orElse((error) =>
+    retries > 0 && isRetryableError(error.code)
+      ? withRetry(attempt, retries - 1)
+      : errAsync(error),
+  );
+
 export const createClaudeCliProvider = (runner: CommandRunner): AIProvider => ({
   generatePlan: (input) => {
+    // Le CLI Claude Code n'applique pas --json-schema : on impose la forme
+    // exacte dans le prompt, puis on extrait/valide le JSON renvoyé, avec
+    // jusqu'à 2 nouvelles tentatives si la forme est non conforme.
     const systemPrompt =
-      "Tu es le moteur de planification de repas. Réponds UNIQUEMENT avec un planning conforme au schéma JSON fourni.";
-    const args = [
-      ...buildBaseArgs(systemPrompt, "opus"),
-      "--json-schema",
-      weekPlanJsonSchema,
-    ];
-    return runner(args, buildPlanPrompt(input))
-      .andThen((r) => parseEnvelope(r.stdout, r.exitCode))
-      .andThen((text) => parseJson(text))
-      .andThen((parsed) => validateWith(weekPlanSchema, parsed));
+      'Tu es le moteur de planification de repas. Tu réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte ni balise Markdown. Forme EXACTE attendue : {"days":[{"dayLabel":"...","meals":[{"slot":"...","recipeTitle":"..."}]}]}';
+    const args = buildBaseArgs(systemPrompt, "opus");
+    const attempt = (): ResultAsync<WeekPlan, AIError> =>
+      runner(args, buildPlanPrompt(input))
+        .andThen((r) => parseEnvelope(r.stdout, r.exitCode))
+        .andThen((text) => parseJson(extractJsonText(text)))
+        .andThen((parsed) => validateWith(weekPlanSchema, parsed));
+    return withRetry(attempt, 2);
   },
 
   cookingAssistant: (question, context) => {

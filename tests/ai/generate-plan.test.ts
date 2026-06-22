@@ -12,6 +12,28 @@ const makeFakeRunner = (result: CommandResult) => {
   return { run, getArgs: () => lastArgs };
 };
 
+const makeSequenceRunner = (
+  results: readonly CommandResult[],
+  fallback: CommandResult,
+) => {
+  let calls = 0;
+  const run: CommandRunner = () => {
+    const result = results[calls] ?? fallback;
+    calls += 1;
+    return okAsync(result);
+  };
+  return { run, getCalls: () => calls };
+};
+
+const badResult: CommandResult = {
+  stdout: JSON.stringify({ result: JSON.stringify({ wrong: true }) }),
+  exitCode: 0,
+};
+const okResult: CommandResult = {
+  stdout: JSON.stringify({ result: JSON.stringify({ days: [] }) }),
+  exitCode: 0,
+};
+
 const input = { familyProfile: "2 adultes", days: 2, mealsPerDay: ["dîner"] };
 
 const validPlan = {
@@ -32,15 +54,27 @@ describe("generatePlan", () => {
     expect(res._unsafeUnwrap()).toEqual(validPlan);
   });
 
-  it("ajoute --json-schema et utilise le modèle opus", async () => {
+  it("utilise le modèle opus sans s'appuyer sur --json-schema", async () => {
     const fake = makeFakeRunner({
       stdout: JSON.stringify({ result: JSON.stringify(validPlan) }),
       exitCode: 0,
     });
     const provider = createClaudeCliProvider(fake.run);
     await provider.generatePlan(input);
-    expect(fake.getArgs()).toContain("--json-schema");
     expect(fake.getArgs()).toContain("opus");
+    expect(fake.getArgs()).not.toContain("--json-schema");
+  });
+
+  it("accepte un résultat entouré de balises Markdown ```json", async () => {
+    const fenced = "```json\n" + JSON.stringify(validPlan) + "\n```";
+    const fake = makeFakeRunner({
+      stdout: JSON.stringify({ result: fenced }),
+      exitCode: 0,
+    });
+    const provider = createClaudeCliProvider(fake.run);
+    const res = await provider.generatePlan(input);
+    expect(res.isOk()).toBe(true);
+    expect(res._unsafeUnwrap()).toEqual(validPlan);
   });
 
   it("renvoie invalid_output si la sortie structurée n'est pas du JSON", async () => {
@@ -63,5 +97,22 @@ describe("generatePlan", () => {
     const res = await provider.generatePlan(input);
     expect(res.isErr()).toBe(true);
     expect(res._unsafeUnwrapErr().code).toBe("schema_validation_failed");
+  });
+
+  it("réessaie sur sortie non conforme puis réussit", async () => {
+    const fake = makeSequenceRunner([badResult, okResult], okResult);
+    const provider = createClaudeCliProvider(fake.run);
+    const res = await provider.generatePlan(input);
+    expect(res.isOk()).toBe(true);
+    expect(fake.getCalls()).toBe(2);
+  });
+
+  it("échoue après épuisement des tentatives (3 essais)", async () => {
+    const fake = makeSequenceRunner([badResult, badResult, badResult], badResult);
+    const provider = createClaudeCliProvider(fake.run);
+    const res = await provider.generatePlan(input);
+    expect(res.isErr()).toBe(true);
+    expect(res._unsafeUnwrapErr().code).toBe("schema_validation_failed");
+    expect(fake.getCalls()).toBe(3);
   });
 });
