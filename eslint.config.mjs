@@ -8,6 +8,7 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import functional from "eslint-plugin-functional";
+import reactHooks from "eslint-plugin-react-hooks";
 import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
@@ -18,6 +19,8 @@ export default tseslint.config(
       "node_modules/**",
       "coverage/**",
       "playwright-report/**",
+      "dist/**",
+      "dev-dist/**",
       "**/*.config.{ts,mts,mjs,js}",
       "eslint.config.mjs",
     ],
@@ -28,15 +31,19 @@ export default tseslint.config(
   ...tseslint.configs.stylisticTypeChecked,
 
   {
-    files: ["src/**/*.ts", "tests/**/*.ts"],
+    files: ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}"],
     languageOptions: {
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
-    plugins: { functional },
+    plugins: { functional, "react-hooks": reactHooks },
     rules: {
+      // --- React hooks (correctness) ---
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+
       // --- Paradigme fonctionnel strict (eslint-plugin-functional) ---
       "functional/no-classes": "error",
       "functional/no-this-expressions": "error",

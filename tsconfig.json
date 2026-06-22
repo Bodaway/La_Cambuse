@@ -1,8 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "jsx": "react-jsx",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
@@ -11,5 +13,5 @@
     "outDir": "dist",
     "rootDir": "."
   },
-  "include": ["src", "tests", "vitest.config.ts"]
+  "include": ["src", "tests", "vite.config.ts"]
 }
