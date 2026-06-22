@@ -42,12 +42,18 @@ const parseJson = Result.fromThrowable(
 
 const jsonFencePattern = /^```(?:json)?\s*([\s\S]*?)\s*```$/;
 
-// Le CLI enrobe parfois le JSON dans un bloc Markdown ```json … ``` :
-// on en extrait le contenu avant de parser.
+// La sortie du LLM est non déterministe : elle peut être enrobée de balises
+// Markdown ```json … ``` et/ou de texte. On retire un éventuel bloc Markdown,
+// puis on isole le premier objet JSON ({ … }) présent dans le texte.
 const extractJsonText = (raw: string): string => {
   const trimmed = raw.trim();
-  const match = jsonFencePattern.exec(trimmed);
-  return match?.[1] ?? trimmed;
+  const fenced = jsonFencePattern.exec(trimmed);
+  const candidate = fenced?.[1] ?? trimmed;
+  const start = candidate.indexOf("{");
+  const end = candidate.lastIndexOf("}");
+  return start !== -1 && end > start
+    ? candidate.slice(start, end + 1)
+    : candidate;
 };
 
 const parseEnvelope = (
@@ -130,14 +136,14 @@ export const createClaudeCliProvider = (runner: CommandRunner): AIProvider => ({
     // exacte dans le prompt, puis on extrait/valide le JSON renvoyé, avec
     // jusqu'à 2 nouvelles tentatives si la forme est non conforme.
     const systemPrompt =
-      'Tu es le moteur de planification de repas. Tu réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte ni balise Markdown. Forme EXACTE attendue : {"days":[{"dayLabel":"...","meals":[{"slot":"...","recipeTitle":"..."}]}]}';
+      'Tu es le moteur de planification de repas. Tu réponds UNIQUEMENT avec un objet JSON valide (rien d\'autre : aucun texte, aucune explication, aucune balise Markdown). Schéma EXACT, n\'ajoute aucune autre clé : {"days":[{"dayLabel":string,"meals":[{"slot":string,"recipeTitle":string}]}]}. Exemple de réponse valide : {"days":[{"dayLabel":"Lundi","meals":[{"slot":"dîner","recipeTitle":"Soupe de légumes"}]}]}';
     const args = buildBaseArgs(systemPrompt, "opus");
     const attempt = (): ResultAsync<WeekPlan, AIError> =>
       runner(args, buildPlanPrompt(input))
         .andThen((r) => parseEnvelope(r.stdout, r.exitCode))
         .andThen((text) => parseJson(extractJsonText(text)))
         .andThen((parsed) => validateWith(weekPlanSchema, parsed));
-    return withRetry(attempt, 2);
+    return withRetry(attempt, 3);
   },
 
   cookingAssistant: (question, context) => {

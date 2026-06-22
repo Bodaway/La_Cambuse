@@ -77,6 +77,19 @@ describe("generatePlan", () => {
     expect(res._unsafeUnwrap()).toEqual(validPlan);
   });
 
+  it("extrait le JSON même entouré de texte", async () => {
+    const wrapped =
+      "Voici le planning :\n" + JSON.stringify(validPlan) + "\nBon appétit !";
+    const fake = makeFakeRunner({
+      stdout: JSON.stringify({ result: wrapped }),
+      exitCode: 0,
+    });
+    const provider = createClaudeCliProvider(fake.run);
+    const res = await provider.generatePlan(input);
+    expect(res.isOk()).toBe(true);
+    expect(res._unsafeUnwrap()).toEqual(validPlan);
+  });
+
   it("renvoie invalid_output si la sortie structurée n'est pas du JSON", async () => {
     const fake = makeFakeRunner({
       stdout: JSON.stringify({ result: "{cassé" }),
@@ -107,12 +120,12 @@ describe("generatePlan", () => {
     expect(fake.getCalls()).toBe(2);
   });
 
-  it("échoue après épuisement des tentatives (3 essais)", async () => {
-    const fake = makeSequenceRunner([badResult, badResult, badResult], badResult);
+  it("échoue après épuisement des tentatives (4 essais)", async () => {
+    const fake = makeSequenceRunner([badResult], badResult);
     const provider = createClaudeCliProvider(fake.run);
     const res = await provider.generatePlan(input);
     expect(res.isErr()).toBe(true);
     expect(res._unsafeUnwrapErr().code).toBe("schema_validation_failed");
-    expect(fake.getCalls()).toBe(3);
+    expect(fake.getCalls()).toBe(4);
   });
 });
