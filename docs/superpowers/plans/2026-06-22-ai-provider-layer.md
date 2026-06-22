@@ -263,14 +263,14 @@ describe("createExecaRunner", () => {
     expect(JSON.parse(value.stdout)).toEqual({ result: "bonjour" });
   });
 
-  it("remonte un code de sortie non nul sans erreur", async () => {
+  it("renvoie process_failed sur code de sortie non nul", async () => {
     const run = createExecaRunner(process.execPath);
     const result = await run(["-e", "process.exit(3)"], "");
-    expect(result.isOk()).toBe(true);
-    expect(result._unsafeUnwrap().exitCode).toBe(3);
+    expect(result.isErr()).toBe(true);
+    expect(result._unsafeUnwrapErr().code).toBe("process_failed");
   });
 
-  it("renvoie une erreur si la commande est introuvable", async () => {
+  it("renvoie process_failed si la commande est introuvable", async () => {
     const run = createExecaRunner("commande-inexistante-xyz");
     const result = await run([], "");
     expect(result.isErr()).toBe(true);
@@ -278,6 +278,12 @@ describe("createExecaRunner", () => {
   });
 });
 ```
+
+> Design retenu : `reject` reste à sa valeur par défaut (true) — tout échec
+> execa (impossibilité de démarrer **ou** code de sortie non nul) rejette et
+> devient `err(process_failed)`. Plus robuste cross-platform : sous Windows une
+> commande absente ne produit pas d'ENOENT, donc on ne peut pas distinguer
+> « introuvable » de « code ≠ 0 » par le code de sortie.
 
 - [ ] **Step 2: Lancer le test pour vérifier l'échec**
 
@@ -306,13 +312,9 @@ export const createExecaRunner =
   (command = "claude"): CommandRunner =>
   (args, stdin) =>
     ResultAsync.fromPromise(
-      execa(command, [...args], {
-        input: stdin,
-        reject: false,
-        stripFinalNewline: false,
-      }),
-      (cause) => aiError("process_failed", "Échec du lancement du CLI.", cause),
-    ).map((r) => ({ stdout: r.stdout, exitCode: r.exitCode ?? 0 }));
+      execa(command, [...args], { input: stdin, stripFinalNewline: false }),
+      (cause) => aiError("process_failed", "Échec de l'exécution du CLI.", cause),
+    ).map((r): CommandResult => ({ stdout: r.stdout, exitCode: r.exitCode ?? 0 }));
 ```
 
 - [ ] **Step 4: Lancer le test pour vérifier le succès**
