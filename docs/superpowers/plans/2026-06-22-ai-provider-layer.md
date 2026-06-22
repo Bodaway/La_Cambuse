@@ -45,7 +45,7 @@
 
 **Interfaces:**
 - Consumes: rien.
-- Produces: un projet où `npm test` exécute Vitest.
+- Produces: un projet où `pnpm test` exécute Vitest.
 
 - [ ] **Step 1: Écrire `package.json`**
 
@@ -116,12 +116,12 @@ describe("smoke", () => {
 
 - [ ] **Step 5: Installer les dépendances**
 
-Run: `npm install`
+Run: `pnpm install`
 Expected: installation sans erreur, `node_modules/` créé.
 
 - [ ] **Step 6: Lancer le test**
 
-Run: `npm test`
+Run: `pnpm test`
 Expected: PASS (1 test).
 
 - [ ] **Step 7: Commit**
@@ -168,7 +168,7 @@ describe("AIProviderError", () => {
 
 - [ ] **Step 2: Lancer le test pour vérifier l'échec**
 
-Run: `npx vitest run tests/ai/error.test.ts`
+Run: `pnpm exec vitest run tests/ai/error.test.ts`
 Expected: FAIL — `Cannot find module '../../src/ai/types.js'`.
 
 - [ ] **Step 3: Écrire `src/ai/types.ts`**
@@ -208,7 +208,7 @@ export interface AIProvider {
 
 - [ ] **Step 4: Lancer le test pour vérifier le succès**
 
-Run: `npx vitest run tests/ai/error.test.ts`
+Run: `pnpm exec vitest run tests/ai/error.test.ts`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -263,7 +263,7 @@ describe("ExecaCommandRunner", () => {
 
 - [ ] **Step 2: Lancer le test pour vérifier l'échec**
 
-Run: `npx vitest run tests/ai/command-runner.test.ts`
+Run: `pnpm exec vitest run tests/ai/command-runner.test.ts`
 Expected: FAIL — `Cannot find module '../../src/ai/command-runner.js'`.
 
 - [ ] **Step 3: Écrire `src/ai/command-runner.ts`**
@@ -296,7 +296,7 @@ export class ExecaCommandRunner implements CommandRunner {
 
 - [ ] **Step 4: Lancer le test pour vérifier le succès**
 
-Run: `npx vitest run tests/ai/command-runner.test.ts`
+Run: `pnpm exec vitest run tests/ai/command-runner.test.ts`
 Expected: PASS (2 tests).
 
 - [ ] **Step 5: Commit**
@@ -408,7 +408,7 @@ describe("ClaudeCliProvider.transcribeRecipePhoto", () => {
 
 - [ ] **Step 2: Lancer le test pour vérifier l'échec**
 
-Run: `npx vitest run tests/ai/claude-cli-provider.test.ts`
+Run: `pnpm exec vitest run tests/ai/claude-cli-provider.test.ts`
 Expected: FAIL — `Cannot find module '../../src/ai/claude-cli-provider.js'`.
 
 - [ ] **Step 3: Écrire `src/ai/claude-cli-provider.ts`**
@@ -508,7 +508,7 @@ export class ClaudeCliProvider implements AIProvider {
 
 - [ ] **Step 4: Lancer le test pour vérifier le succès**
 
-Run: `npx vitest run tests/ai/claude-cli-provider.test.ts`
+Run: `pnpm exec vitest run tests/ai/claude-cli-provider.test.ts`
 Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
@@ -613,7 +613,7 @@ describe("ClaudeCliProvider.generatePlan", () => {
 
 - [ ] **Step 2: Lancer le test pour vérifier l'échec**
 
-Run: `npx vitest run tests/ai/generate-plan.test.ts`
+Run: `pnpm exec vitest run tests/ai/generate-plan.test.ts`
 Expected: FAIL — `provider.generatePlan is not a function` (ou erreur de type/compilation).
 
 - [ ] **Step 3: Ajouter les types de planning dans `src/ai/types.ts`**
@@ -746,12 +746,12 @@ Ajouter ces deux méthodes dans la classe `ClaudeCliProvider` :
 
 - [ ] **Step 6: Lancer les tests pour vérifier le succès**
 
-Run: `npx vitest run tests/ai/generate-plan.test.ts tests/ai/claude-cli-provider.test.ts`
+Run: `pnpm exec vitest run tests/ai/generate-plan.test.ts tests/ai/claude-cli-provider.test.ts`
 Expected: PASS (tous).
 
 - [ ] **Step 7: Vérifier le typage**
 
-Run: `npm run typecheck`
+Run: `pnpm typecheck`
 Expected: aucune erreur.
 
 - [ ] **Step 8: Commit**
@@ -808,7 +808,7 @@ describe("createAIProvider", () => {
 
 - [ ] **Step 2: Lancer le test pour vérifier l'échec**
 
-Run: `npx vitest run tests/ai/factory.test.ts`
+Run: `pnpm exec vitest run tests/ai/factory.test.ts`
 Expected: FAIL — `Cannot find module '../../src/ai/index.js'`.
 
 - [ ] **Step 3: Écrire `src/ai/index.ts`**
@@ -843,12 +843,12 @@ export function createAIProvider(
 
 - [ ] **Step 4: Lancer le test pour vérifier le succès**
 
-Run: `npx vitest run tests/ai/factory.test.ts`
+Run: `pnpm exec vitest run tests/ai/factory.test.ts`
 Expected: PASS (4 tests).
 
 - [ ] **Step 5: Lancer toute la suite et le typage**
 
-Run: `npm test && npm run typecheck`
+Run: `pnpm test && pnpm typecheck`
 Expected: tous les tests PASS, aucune erreur de type.
 
 - [ ] **Step 6: Commit**
