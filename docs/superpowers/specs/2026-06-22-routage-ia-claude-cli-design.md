@@ -89,7 +89,7 @@ claude -p \
 | Option | Rôle |
 |---|---|
 | `-p --output-format json` | Réponse non-interactive ; renvoie un objet `{ result, total_cost_usd, usage, ... }`. Le backend lit `.result` (et peut journaliser le coût). |
-| `--json-schema '<…>'` | **Sortie structurée validée** par le CLI → fiabilise planning et extraction de recette ; supprime le parsing fragile. |
+| ~~`--json-schema '<…>'`~~ | **Abandonné** — le CLI **n'applique pas** ce flag (voir `docs/adr/0001-cli-json-schema-non-applique.md`). La forme est imposée dans le system prompt, le JSON est extrait des balises Markdown puis validé avec Zod, avec retry borné. |
 | `--system-prompt "<…>"` | Remplace le prompt système par défaut → l'app ne dépend pas de la configuration personnelle du développeur. |
 | `--tools ""` | Désactive tous les outils → complétion pure, déterministe, sans accès fichiers. |
 | `--setting-sources ""` | Empêche le chargement de la config personnelle (`CLAUDE.md`, plugins, MCP) dans les appels de l'app. |
