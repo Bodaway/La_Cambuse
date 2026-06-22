@@ -2,11 +2,13 @@ import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { aiDevServerPlugin } from "./src/server/ai-dev-server.js";
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    aiDevServerPlugin(),
     VitePWA({
       registerType: "autoUpdate",
       manifest: {

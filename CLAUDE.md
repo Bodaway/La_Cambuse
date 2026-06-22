@@ -77,6 +77,9 @@ pnpm exec vitest run <chemin>   # un fichier de test précis
 ## Organisation
 
 - `src/ai/` — couche d'accès IA (interface `AIProvider`, provider CLI, `CommandRunner`, schémas, fabrique).
+- `src/server/` — passerelle IA côté serveur : handler `ai-api` (testé) + middleware de dev Vite (`/api/ai`).
+- `src/lib/` — utilitaires front (client `ai-client`, `queryClient`).
+- `src/ui/` — application React (`App`, `pages/`).
 - `docs/specifications-fonctionnelles.md` — spec fonctionnelle (référence produit).
 - `docs/revue-specifications.md` — revue critique de la spec.
 - `docs/adr/` — décisions d'architecture (ADR).
