@@ -1,8 +1,10 @@
 import { errAsync, ok, err, Result } from "neverthrow";
+import type { z } from "zod";
 import type { AIError } from "./errors.js";
 import { aiError } from "./errors.js";
 import type { CommandRunner } from "./command-runner.js";
-import type { AIProvider, CookingContext } from "./types.js";
+import type { AIProvider, CookingContext, PlanGenerationInput } from "./types.js";
+import { weekPlanJsonSchema, weekPlanSchema } from "./schemas.js";
 
 export type Model = "sonnet" | "opus";
 
@@ -66,7 +68,47 @@ const buildCookingPrompt = (
     .filter(Boolean)
     .join("\n\n");
 
+const buildPlanPrompt = (input: PlanGenerationInput): string =>
+  [
+    `Profil famille:\n${input.familyProfile}`,
+    input.constraints ? `Contraintes:\n${input.constraints}` : "",
+    `Nombre de jours: ${String(input.days)}`,
+    `Repas par jour: ${input.mealsPerDay.join(", ")}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+const validateWith = <T>(
+  schema: z.ZodType<T>,
+  value: unknown,
+): Result<T, AIError> => {
+  const parsed = schema.safeParse(value);
+  return parsed.success
+    ? ok(parsed.data)
+    : err(
+        aiError(
+          "schema_validation_failed",
+          "La sortie IA ne respecte pas le schéma attendu.",
+          parsed.error,
+        ),
+      );
+};
+
 export const createClaudeCliProvider = (runner: CommandRunner): AIProvider => ({
+  generatePlan: (input) => {
+    const systemPrompt =
+      "Tu es le moteur de planification de repas. Réponds UNIQUEMENT avec un planning conforme au schéma JSON fourni.";
+    const args = [
+      ...buildBaseArgs(systemPrompt, "opus"),
+      "--json-schema",
+      weekPlanJsonSchema,
+    ];
+    return runner(args, buildPlanPrompt(input))
+      .andThen((r) => parseEnvelope(r.stdout, r.exitCode))
+      .andThen((text) => parseJson(text))
+      .andThen((parsed) => validateWith(weekPlanSchema, parsed));
+  },
+
   cookingAssistant: (question, context) => {
     const systemPrompt =
       "Tu es l'assistant cuisine de l'application. Réponds de façon concise et directe.";
